@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title></title>
+<meta name="description" content="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+ 
+<link rel="stylesheet" href="">
+    <style>
+        body, html, #background {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+            margin-left : 50%;
+            left: -150px; /* width 300 */
+            z-index: 2000;
+        }
+        #background {
+            background-color: #9CBDFF;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 1000;
+        }
+        .logo {
+            position: static;
+            margin: 0;
+            left: 0px;
+            float: left;
+        }
+        nav {
+            float: left;
+            line-height: 200px;
+        }
+        .clearfix {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas" width="300" height="400"></canvas> 
+
+    <nav>
+        <a href="#">Products</a>
+        <a href="#">Services</a>
+        <a href="#">About</a>
+    </nav>
+
+    <div class="clearfix"></div>
+
+    <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+    </p>
+
+    <img src="http://placehold.it/300x400">
+
+    <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+    </p>
+
+    <div id="background"></div>
+
+    <script>
+
+        (function () {
+            var requestAnimationFrame = window.requestAnimationFrame || 
+                                        window.mozRequestAnimationFrame || 
+                                        window.webkitRequestAnimationFrame || 
+                                        window.msRequestAnimationFrame;
+            window.requestAnimationFrame = requestAnimationFrame;
+        })();
+
+        var canvas = document.getElementById("canvas"),
+            ctx = canvas.getContext("2d");
+
+        canvas.width = 300;
+        canvas.height = 400;
+
+        var parts = [],
+            minSpawnTime = 40,
+            lastTime = new Date().getTime(),
+            maxLifeTime = 10000,//Math.min(5000, (canvas.height/(1.5*60)*1000)),
+            emitterX = 100,//canvas.width / 2,
+            emitterY = 400,
+            keepGoing = true;
+
+        var world = {
+            smokeImage: (function() {
+                var image = new Image();
+                image.src = "vapor.png";
+                image.onload = function() {
+                    world.renderParticles();
+                };
+                return image;
+            })(),
+
+            renderParticles: function() {
+                var len = parts.length;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                while (len--) {
+                    var particle = parts[len];
+
+                    //if (particle.y < 0 || particle.lifeTime > maxLifeTime) {
+                    if (particle.y < 0) {
+                        parts.splice(len, 1);
+                    } else {
+                        particle.update();
+
+                        ctx.save();
+
+                        world.renderClip();
+
+                        var offsetX = -particle.size / 2,
+                            offsetY = -particle.size / 2;
+                        ctx.translate(particle.x - offsetX, 
+                                      particle.y - offsetY);
+                        ctx.rotate(particle.angle / 180 * Math.PI);
+                        ctx.globalAlpha  = particle.alpha;
+                        ctx.drawImage(world.smokeImage, offsetX, offsetY, 
+                                      particle.size, particle.size);
+
+                        ctx.restore();
+                    }
+                }
+
+                if ( keepGoing ) {
+                    world.spawnNewParticles();
+                    window.requestAnimationFrame(world.renderParticles);
+                } else {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(25, 100, 25, 0, 2 * Math.PI);
+                    ctx.arc(75, 100, 25, 0, 2 * Math.PI);
+                    ctx.arc(125, 100, 25, 0, 2 * Math.PI);
+                    ctx.arc(175, 100, 25, 0, 2 * Math.PI);
+                    ctx.arc(225, 100, 25, 0, 2 * Math.PI);
+
+                    var grd = ctx.createLinearGradient(150, 50, 150, 125);
+
+                    var opacity = 0.00;
+                    function colorShape() {
+                        ctx.clearRect(0, 75, canvas.width, 50);
+
+                        grd.addColorStop(0, 'rgba(14, 66, 170,'+opacity+')');   
+                        //grd.addColorStop(1, 'rgba(255, 255, 255,'+opacity+')');   
+                        grd.addColorStop(1, 'transparent');   
+                        ctx.fillStyle = grd;
+                        ctx.fill();
+                    }
+                    var intervalId = setInterval(function() {
+                        if (opacity < 1) {
+                            window.requestAnimationFrame(colorShape);
+                            opacity += 0.1;
+                        } else {
+                            clearInterval(intervalId);
+                            showPage();
+                        }
+                    }, 150);
+
+                    ctx.restore();
+                }
+            },
+
+            renderClip: function() {
+                ctx.beginPath();
+                ctx.arc(25, 100, 25, 0, 2 * Math.PI);
+                ctx.arc(75, 100, 25, 0, 2 * Math.PI);
+                ctx.arc(125, 100, 25, 0, 2 * Math.PI);
+                ctx.arc(175, 100, 25, 0, 2 * Math.PI);
+                ctx.arc(225, 100, 25, 0, 2 * Math.PI);
+                ctx.rect(0, 125, 300, 500);
+                ctx.clip();
+            },
+
+            spawnNewParticles: function() {
+                if (new Date().getTime() > lastTime + minSpawnTime) {
+                    lastTime = new Date().getTime();
+                    //parts.push(new Particle(emitterX-60, emitterY));
+                    //parts.push(new Particle(emitterX-30, emitterY));
+                    parts.push(new Particle(emitterX, emitterY));
+                    //parts.push(new Particle(emitterX+30, emitterY));
+                }
+            },
+
+            done: function() {
+                keepGoing = false;
+                canvas.height = 125;
+            }
+        };
+
+        function Particle(x, y, index) {
+            this.x = x;
+            this.y = y;
+
+            this.size = 1; // pixels
+            this.startSize = 32;
+            this.endSize = 40;
+
+            this.angle = Math.random() * 359;
+
+            this.startLife = new Date().getTime();
+            this.lifeTime = 0;
+
+            this.velY = -1 - (Math.random()*0.5);
+            this.velX = Math.floor(Math.random() * (-6) + 3) / 10;
+        }
+
+        Particle.prototype.update = function () {
+            this.lifeTime = new Date().getTime() - this.startLife;
+            this.angle += 0.2;
+            
+            var lifePerc = ((this.lifeTime / maxLifeTime) * 100);
+
+            this.size = this.startSize + ((this.endSize - this.startSize) * lifePerc * .1);
+            //this.size = this.startSize - ((this.startSize - this.endSize) * lifePerc * .1);
+
+            //this.alpha = 1 - (lifePerc * .01);
+            this.alpha = 0 + (lifePerc * .01);
+            this.alpha = Math.max(this.alpha,0);
+            
+            this.x += this.velX;
+            this.y += this.velY;
+        }
+        
+        function resizeMe() {
+           //canvas.height = document.body.offsetHeight;
+        }
+        window.onresize = resizeMe;
+        window.onload = resizeMe;
+
+        setTimeout(world.done, 10000);
+
+        function showPage() {
+            var bg = document.getElementById("background");
+            var opacity = 1;
+            var intervalId = setInterval(function() {
+               if (opacity > 0 ) {
+                   opacity -= 0.1;
+                   bg.style.opacity = opacity;
+               } else {
+                   clearInterval(intervalId);
+                   bg.parentNode.removeChild(bg);
+                   canvas.className = "logo";
+               }
+            }, 150);
+        }
+    </script>
+</body>
+</html> 
